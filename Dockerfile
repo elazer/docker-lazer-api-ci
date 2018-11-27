@@ -23,6 +23,7 @@ RUN set -xe \
 		gmp \
 		intl \
 		zip \
+		soap \
 	&& pecl install \
 		apcu-$APCU_VERSION \
 		ds \
