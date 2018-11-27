@@ -18,6 +18,7 @@ RUN set -xe \
 		gmp-dev \
 		icu-dev \
 		zlib-dev \
+		libxml2-dev \
 	&& docker-php-ext-install \
 		bcmath \
 		gmp \
