@@ -1,6 +1,8 @@
 FROM php:7.2-alpine3.8
 
-RUN apk add --no-cache --virtual .persistent-deps \
+RUN apk add --no-cache \
+        libssl1.0 \
+	&& apk add --no-cache --virtual .persistent-deps \
 		ca-certificates \
 		curl \
 		git \
@@ -24,10 +26,12 @@ RUN set -xe \
 	&& pecl install \
 		apcu-$APCU_VERSION \
 		ds \
+		mongodb \
 	&& docker-php-ext-enable --ini-name 05-opcache.ini opcache \
 	&& docker-php-ext-enable --ini-name 20-apcu.ini apcu \
 	&& docker-php-ext-enable \
 		ds \
+		mongodb \
 	&& apk del .build-deps
 
 COPY install-composer.sh /usr/local/bin/docker-app-install-composer
