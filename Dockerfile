@@ -1,40 +1,60 @@
-FROM php:7.2-alpine3.8
+FROM php:7.4-fpm-alpine
 
+# persistent / runtime deps
 RUN apk add --no-cache \
-        libssl1.0 \
-	&& apk add --no-cache --virtual .persistent-deps \
+		acl \
 		ca-certificates \
 		curl \
+		fcgi \
+		file \
+		gettext \
 		git \
 		gmp \
 		icu-libs \
+        libssl1.1 \
 		zlib
 
-ENV APCU_VERSION 5.1.9
-
-RUN set -xe \
-	&& apk add --no-cache --virtual .build-deps \
+ARG APCU_VERSION=5.1.18
+RUN set -eux; \
+	apk add --no-cache --virtual .build-deps \
 		$PHPIZE_DEPS \
 		gmp-dev \
 		icu-dev \
+		libzip-dev \
 		zlib-dev \
 		libxml2-dev \
-	&& docker-php-ext-install \
+	; \
+	\
+	docker-php-ext-configure zip; \
+	docker-php-ext-install -j$(nproc) \
 		bcmath \
 		gmp \
 		intl \
 		zip \
 		soap \
-	&& pecl install \
-		apcu-$APCU_VERSION \
+	; \
+	pecl install \
+		apcu-${APCU_VERSION} \
 		ds \
 		mongodb \
-	&& docker-php-ext-enable --ini-name 05-opcache.ini opcache \
-	&& docker-php-ext-enable --ini-name 20-apcu.ini apcu \
-	&& docker-php-ext-enable \
+	; \
+	pecl clear-cache; \
+	docker-php-ext-enable \
+		apcu \
 		ds \
 		mongodb \
-	&& apk del .build-deps
+		opcache \
+	; \
+	\
+	runDeps="$( \
+		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/lib/php/extensions \
+			| tr ',' '\n' \
+			| sort -u \
+			| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+	)"; \
+	apk add --no-cache --virtual .api-phpexts-rundeps $runDeps; \
+	\
+	apk del .build-deps
 
 COPY install-composer.sh /usr/local/bin/docker-app-install-composer
 RUN chmod +x /usr/local/bin/docker-app-install-composer
